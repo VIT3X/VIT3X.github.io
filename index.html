@@ -1,1 +1,82 @@
-hello world
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Protected Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #e0f7fa;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="password"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #d32f2f; /* Default for incorrect */
+        }
+        #message.success {
+            color: #388e3c; /* For correct */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Enter Password</h2>
+        <input type="password" id="passwordInput" placeholder="Type password here">
+        <br>
+        <button onclick="checkPassword()">Submit</button>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        function checkPassword() {
+            const correctPassword = "ahojda"; // The required password
+            const enteredPassword = document.getElementById("passwordInput").value;
+            const messageElement = document.getElementById("message");
+
+            if (enteredPassword === correctPassword) {
+                messageElement.textContent = "You won!";
+                messageElement.className = "success"; // Apply success styling
+            } else {
+                messageElement.textContent = "Incorrect password.";
+                messageElement.className = ""; // Remove success styling if present
+            }
+        }
+    </script>
+
+</body>
+</html>
