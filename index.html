@@ -52,16 +52,16 @@
 <body>
 
     <div class="container">
-        <h2>Enter Password</h2>
-        <input type="password" id="passwordInput" placeholder="Type password here">
+        <h2>Na začátku života jsem byl trochu ostrej. V 90 letech jsem došel k tomu pravému názoru, že až mi bude jednou tolik postavím se k tomu napřímo. Ale až na sklonku života jsem se cítil plný. Co jsem?</h2>
+        <input type="password" id="passwordInput" placeholder="Zadejte heslo">
         <br>
-        <button onclick="checkPassword()">Submit</button>
+        <button onclick="checkPassword()">Zkontrolovat</button>
         <div id="message"></div>
     </div>
 
     <script>
         function checkPassword() {
-            const correctPassword = "ahojda"; // The required password
+            const correctPassword = "úhel"; // The required password
             const enteredPassword = document.getElementById("passwordInput").value;
             const messageElement = document.getElementById("message");
 
