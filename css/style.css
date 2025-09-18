@@ -1,0 +1,44 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #f0f0f0;
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border: 2px solid #000;
+}
+
+h1 {
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+    color: #333;
+}
+
+.score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    font-family: 'Arial', sans-serif;
+    color: #000;
+}
+
+.jump-animation {
+    animation: jump 0.5s ease;
+}
+
+@keyframes jump {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-100px); }
+    100% { transform: translateY(0); }
+}
+
+.obstacle {
+    background-color: #ff0000;
+    position: absolute;
+    bottom: 0;
+}
