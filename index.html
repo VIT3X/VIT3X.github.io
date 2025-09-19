@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atletický Běh</title>
+    <title>Atletický Běh s Překážkami</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Atletický Běh</h1>
+    <h1>🏃‍♂️ Atletický Běh s Překážkami 🏆</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="1000" height="500"></canvas>
         <div id="hud">
-            Čas: <span id="timeValue">0.00</span>s
+            ⏱️ Čas: <span id="timeValue">0.00</span>s
         </div>
     </div>
-    <p>Drž MEZERNÍK pro skok. Pusť ho dříve pro rychlejší dopad.</p>
+    <div class="instructions">
+        <p><strong>🎮 Ovládání:</strong></p>
+        <p>⌨️ <strong>MEZERNÍK</strong> - Skok přes překážky</p>
+        <p>💡 <strong>Tip:</strong> Drž MEZERNÍK jen dokud nejsi nad překážkou, pak pusť pro rychlejší dopad!</p>
+        <p>🏃‍♂️ Běžec zrychluje pouze když běží po zemi</p>
+    </div>
 </body>
 <script src="script.js"></script>
 </html>
