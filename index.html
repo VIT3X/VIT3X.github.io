@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Běžec Hra</title>
+    <title>Atletický Běh</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <h1>Běžec Hra</h1>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <p>Stiskni MEZERNÍK pro skok a start hry</p>
-    <p>Skóre: <span id="scoreValue">0</span></p>
-
-    <script src="script.js"></script>
-
+    <h1>Atletický Běh</h1>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1000" height="500"></canvas>
+        <div id="hud">
+            Čas: <span id="timeValue">0.00</span>s
+        </div>
+    </div>
+    <p>Drž MEZERNÍK pro skok. Pusť ho dříve pro rychlejší dopad.</p>
 </body>
+<script src="script.js"></script>
 </html>
