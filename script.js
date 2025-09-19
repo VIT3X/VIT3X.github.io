@@ -2,6 +2,15 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const timeElement = document.getElementById('timeValue');
 
+// Debug - zkontrolujeme jestli se elementy načetly
+console.log('Canvas:', canvas);
+console.log('Context:', ctx);
+console.log('Time element:', timeElement);
+
+if (!canvas || !ctx) {
+    console.error('Canvas se nenačetl správně!');
+}
+
 // --- HERNÍ NASTAVENÍ ---
 const GRAVITY = 0.8;
 const JUMP_STRENGTH = -16;
@@ -459,36 +468,51 @@ function gameLoop() {
 }
 
 function init() {
-    generateObstacles();
-    gameState = 'initial';
-    draw(); // Vykreslíme úvodní stav
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 60px Arial';
-    ctx.textAlign = 'center';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
-    ctx.fillText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
-    
-    ctx.font = 'bold 30px Arial';
-    ctx.strokeText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
-    ctx.fillText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
-    
-    ctx.font = '20px Arial';
-    ctx.fillStyle = '#FFFF88';
-    ctx.fillText('Drž MEZERNÍK pro skok, pusť dříve pro rychlejší dopad!', canvas.width / 2, canvas.height / 2 + 60);
+    try {
+        console.log('Inicializace hry...');
+        generateObstacles();
+        gameState = 'initial';
+        draw(); // Vykreslíme úvodní stav
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 60px Arial';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
+        ctx.fillText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
+        
+        ctx.font = 'bold 30px Arial';
+        ctx.strokeText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
+        
+        ctx.font = '20px Arial';
+        ctx.fillStyle = '#FFFF88';
+        ctx.fillText('Drž MEZERNÍK pro skok, pusť dříve pro rychlejší dopad!', canvas.width / 2, canvas.height / 2 + 60);
 
-    // Čekáme na první stisk mezerníku pro spuštění odpočtu
-    document.addEventListener('keydown', function(e) {
-        if (e.code === 'Space' && gameState === 'initial') {
-            startSequence();
+        // Čekáme na první stisk mezerníku pro spuštění odpočtu
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && gameState === 'initial') {
+                startSequence();
+            }
+        }, { once: true });
+        
+        console.log('Hra inicializována úspěšně!');
+    } catch (error) {
+        console.error('Chyba při inicializaci:', error);
+        // Fallback - zobrazíme alespoň nějakou zprávu
+        if (ctx) {
+            ctx.fillStyle = 'red';
+            ctx.font = '20px Arial';
+            ctx.fillText('Chyba při načítání hry: ' + error.message, 50, 50);
         }
-    }, { once: true });
+    }
 }
 
-// Spustíme hru přímo, protože už nepotřebujeme načítat obrázky
-init();
+// Spustíme hru až po načtení DOM
+document.addEventListener('DOMContentLoaded', function() {
+    init();
+});
