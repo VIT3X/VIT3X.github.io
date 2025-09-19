@@ -1,187 +1,229 @@
-// Získání přístupu k HTML prvkům
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('scoreValue');
+const timeElement = document.getElementById('timeValue');
 
 // --- HERNÍ NASTAVENÍ ---
-const playerWidth = 50;
-const playerHeight = 50;
-const playerColor = '#3498db'; // Modrá barva hráče
+const GRAVITY = 0.7;
+const JUMP_STRENGTH = -15;
+const FAST_FALL_GRAVITY = 1.8;
+const GROUND_Y = canvas.height - 100; // Pozice země
+const TRACK_DISTANCE = 5000; // Celková délka trati v pixelech
 
-const obstacleWidth = 30;
-const obstacleColor = '#e74c3c'; // Červená barva překážek
-const obstacleSpeed = 5;
-const obstacleSpawnInterval = 120; // Jak často se objeví nová překážka (v počtu snímků)
+// --- Načítání obrázků ---
+const assets = {
+    playerSheet: new Image(),
+    obstacle: new Image(),
+    finishLine: new Image()
+};
+assets.playerSheet.src = 'assets/runner.png';
+assets.obstacle.src = 'assets/prekazka.png';
+assets.finishLine.src = 'assets/cil.png';
 
-const gravity = 0.6;
-const jumpStrength = -12;
-const groundHeight = canvas.height - playerHeight;
+let assetsLoaded = 0;
+const totalAssets = Object.keys(assets).length;
+for (let key in assets) {
+    assets[key].onload = () => {
+        assetsLoaded++;
+        if (assetsLoaded === totalAssets) {
+            init(); // Spustíme hru, až se vše načte
+        }
+    };
+}
 
-// --- HERNÍ PROMĚNNÉ ---
-let playerY = groundHeight;
-let playerYVelocity = 0;
-let isJumping = false;
+// --- Hráč ---
+const player = {
+    width: 100, // Šířka jednoho snímku animace
+    height: 100, // Výška jednoho snímku
+    x: 50,
+    y: GROUND_Y - 100,
+    velocityY: 0,
+    speedX: 0,
+    maxSpeed: 8,
+    acceleration: 0.05,
+    onGround: true,
+    // Animace
+    frameCount: 8, // Počet snímků ve sprite sheetu
+    currentFrame: 0,
+    frameSpeed: 4, // Jak rychle se mění animace (nižší = rychlejší)
+    frameCounter: 0
+};
+
+// --- HERNÍ STAV ---
+let gameState = 'loading'; // stavy: loading, ready, running, finished
+let worldOffsetX = 0;
 let obstacles = [];
-let score = 0;
-let frameCount = 0;
-let gameOver = false;
-let gameStarted = false;
+let startTime = 0;
+let finalTime = 0;
+let keys = {};
 
-// --- FUNKCE PRO KRESLENÍ ---
+// --- Vstup od hráče ---
+document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-// Vykreslení hráče
-function drawPlayer() {
-    ctx.fillStyle = playerColor;
-    ctx.fillRect(50, playerY, playerWidth, playerHeight);
-}
 
-// Vykreslení překážek
-function drawObstacles() {
-    ctx.fillStyle = obstacleColor;
-    obstacles.forEach(obstacle => {
-        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    });
-}
-
-// --- FUNKCE PRO AKTUALIZACI STAVU HRY ---
-
-// Aktualizace pozice hráče (skok, gravitace)
-function updatePlayer() {
-    playerYVelocity += gravity;
-    playerY += playerYVelocity;
-
-    // Zabrání pádu pod zem
-    if (playerY > groundHeight) {
-        playerY = groundHeight;
-        playerYVelocity = 0;
-        isJumping = false;
-    }
-}
-
-// Aktualizace pozic překážek a jejich generování
-function updateObstacles() {
-    frameCount++;
-
-    // Generování nové překážky v pravidelných intervalech
-    if (frameCount % obstacleSpawnInterval === 0) {
-        const obstacleHeight = Math.random() * 100 + 50; // Náhodná výška
+function generateObstacles() {
+    let currentPos = 500;
+    while(currentPos < TRACK_DISTANCE) {
         obstacles.push({
-            x: canvas.width,
-            y: canvas.height - obstacleHeight,
-            width: obstacleWidth,
-            height: obstacleHeight
+            x: currentPos,
+            y: GROUND_Y - 80, // Výška překážky 80px
+            width: 80,
+            height: 80
         });
-    }
-
-    // Posun a mazání starých překážek
-    let scoredThisFrame = false;
-    obstacles.forEach((obstacle, index) => {
-        obstacle.x -= obstacleSpeed;
-
-        // Pokud překážka zmizí z obrazovky, smažeme ji
-        if (obstacle.x + obstacle.width < 0) {
-            obstacles.splice(index, 1);
-        }
-        
-        // Zvýšení skóre, když hráč úspěšně přeskočí překážku
-        if (obstacle.x + obstacle.width < 50 && !obstacle.scored) {
-             if (!scoredThisFrame) { // Zajistí, že se skóre zvýší jen jednou za snímek
-                score++;
-                scoreElement.textContent = score;
-                scoredThisFrame = true;
-             }
-             // Označíme překážku jako "obodovanou", abychom nepřičítali body vícekrát
-             obstacle.scored = true;
-        }
-    });
-}
-
-// Detekce kolize mezi hráčem a překážkou
-function checkCollision() {
-    const playerX = 50;
-    for (const obstacle of obstacles) {
-        // Jednoduchá detekce kolize dvou obdélníků
-        if (
-            playerX < obstacle.x + obstacle.width &&
-            playerX + playerWidth > obstacle.x &&
-            playerY < obstacle.y + obstacle.height &&
-            playerY + playerHeight > obstacle.y
-        ) {
-            gameOver = true;
-        }
+        currentPos += 400 + Math.random() * 400; // Náhodný rozestup
     }
 }
 
-// Zobrazení "Game Over" obrazovky
-function drawGameOver() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+function startSequence() {
+    gameState = 'ready';
+    let countdown = ["READY...", "SET...", "GO!"];
+    let i = 0;
 
-    ctx.fillStyle = 'white';
-    ctx.font = '50px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
-    
-    ctx.font = '20px Arial';
-    ctx.fillText('Stiskni MEZERNÍK pro novou hru', canvas.width / 2, canvas.height / 2 + 20);
-}
-
-// Resetování hry do původního stavu
-function resetGame() {
-    playerY = groundHeight;
-    playerYVelocity = 0;
-    isJumping = false;
-    obstacles = [];
-    score = 0;
-    frameCount = 0;
-    gameOver = false;
-    gameStarted = true;
-    scoreElement.textContent = score;
-    gameLoop(); // Znovu spustíme herní smyčku
-}
-
-// --- OVLÁDÁNÍ ---
-document.addEventListener('keydown', (e) => {
-    // Skok po stisknutí mezerníku
-    if (e.code === 'Space') {
-        if (!gameStarted) {
-            gameStarted = true;
+    function showNext() {
+        if (i < countdown.length) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawWorld();
+            drawPlayer();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 80px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 4;
+            ctx.strokeText(countdown[i], canvas.width / 2, canvas.height / 2);
+            ctx.fillText(countdown[i], canvas.width / 2, canvas.height / 2);
+            i++;
+            setTimeout(showNext, 1000);
+        } else {
+            gameState = 'running';
+            startTime = performance.now();
             gameLoop();
         }
-        if (gameOver) {
-            resetGame();
-        } else if (!isJumping) {
-            playerYVelocity = jumpStrength;
-            isJumping = true;
-        }
     }
-});
-
-// --- HLAVNÍ HERNÍ SMYČKA ---
-function gameLoop() {
-    if (gameOver) {
-        drawGameOver();
-        return; // Zastavíme smyčku, pokud je konec hry
-    }
-
-    // 1. Vymazání plátna
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 2. Aktualizace stavu
-    updatePlayer();
-    updateObstacles();
-    checkCollision();
-
-    // 3. Vykreslení prvků
-    drawPlayer();
-    drawObstacles();
-
-    // Požádáme prohlížeč, aby spustil tuto funkci znovu při dalším snímku
-    requestAnimationFrame(gameLoop);
+    showNext();
 }
 
-// Zobrazí úvodní text
-ctx.fillStyle = 'black';
-ctx.font = '30px Arial';
-ctx.textAlign = 'center';
-ctx.fillText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2);
+function update() {
+    if (gameState !== 'running') return;
+
+    // --- Pohyb a zrychlení hráče ---
+    if (player.onGround) {
+        if (player.speedX < player.maxSpeed) {
+            player.speedX += player.acceleration;
+        }
+    }
+    worldOffsetX += player.speedX;
+
+    // --- Skákání ---
+    if (keys['Space'] && player.onGround) {
+        player.velocityY = JUMP_STRENGTH;
+        player.onGround = false;
+    }
+    
+    // Aplikace gravitace
+    player.velocityY += keys['Space'] ? GRAVITY : FAST_FALL_GRAVITY;
+    player.y += player.velocityY;
+
+    // Detekce země
+    if (player.y + player.height > GROUND_Y) {
+        player.y = GROUND_Y - player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+    }
+
+    // --- Animace hráče ---
+    player.frameCounter++;
+    if (player.onGround && player.frameCounter >= player.frameSpeed) {
+        player.currentFrame = (player.currentFrame + 1) % player.frameCount;
+        player.frameCounter = 0;
+    }
+
+    // --- Kolize s překážkami ---
+    obstacles.forEach(obs => {
+        const playerLeft = player.x;
+        const playerRight = player.x + player.width - 20; // -20 pro přesnější kolizi
+        const obsLeft = obs.x - worldOffsetX;
+        const obsRight = obs.x + obs.width - worldOffsetX;
+
+        if (playerRight > obsLeft && playerLeft < obsRight && player.y + player.height > obs.y) {
+            player.speedX *= 0.8; // Zpomalení při kolizi
+        }
+    });
+    
+    // --- Cíl ---
+    if (worldOffsetX + player.x > TRACK_DISTANCE) {
+        gameState = 'finished';
+        finalTime = (performance.now() - startTime) / 1000;
+    }
+    
+    // Aktualizace času
+    const currentTime = (performance.now() - startTime) / 1000;
+    timeElement.textContent = currentTime.toFixed(2);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Kreslení světa
+    drawWorld();
+    
+    // Kreslení překážek a cíle
+    obstacles.forEach(obs => {
+        ctx.drawImage(assets.obstacle, obs.x - worldOffsetX, obs.y, obs.width, obs.height);
+    });
+    ctx.drawImage(assets.finishLine, TRACK_DISTANCE - worldOffsetX, GROUND_Y - 200, 50, 200);
+
+    // Kreslení hráče
+    drawPlayer();
+
+    // Konec hry
+    if (gameState === 'finished') {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'gold';
+        ctx.font = 'bold 60px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText('CÍL!', canvas.width / 2, canvas.height / 2 - 40);
+        ctx.font = '40px Segoe UI';
+        ctx.fillText(`Tvůj čas: ${finalTime.toFixed(2)}s`, canvas.width / 2, canvas.height / 2 + 40);
+    }
+}
+
+function drawPlayer() {
+    const frameX = player.currentFrame * player.width;
+    ctx.drawImage(assets.playerSheet, frameX, 0, player.width, player.height, player.x, player.y, player.width, player.height);
+}
+
+function drawWorld() {
+    // Tráva
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+    // Tartanová dráha
+    ctx.fillStyle = '#b71c1c';
+    ctx.fillRect(0, GROUND_Y - 20, canvas.width, 20);
+}
+
+function gameLoop() {
+    update();
+    draw();
+    if (gameState === 'running') {
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function init() {
+    generateObstacles();
+    gameState = 'initial';
+    draw(); // Vykreslíme úvodní stav
+    
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 40px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2);
+
+    // Čekáme na první stisk mezerníku pro spuštění odpočtu
+    document.addEventListener('keydown', function(e) {
+        if (e.code === 'Space' && gameState === 'initial') {
+            startSequence();
+        }
+    }, { once: true }); // event se spustí jen jednou
+}
