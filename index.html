@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Atletický Běh s Překážkami</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,8 +16,9 @@
     </div>
     <div class="instructions">
         <p><strong>🎮 Ovládání:</strong></p>
-        <p>⌨️ <strong>MEZERNÍK</strong> - Skok přes překážky</p>
-        <p>💡 <strong>Tip:</strong> Drž MEZERNÍK jen dokud nejsi nad překážkou, pak pusť pro rychlejší dopad!</p>
+        <p class="desktop-only">⌨️ <strong>MEZERNÍK</strong> - Skok přes překážky</p>
+        <p class="mobile-only">📱 <strong>DOTKNI SE OBRAZOVKY</strong> - Skok přes překážky</p>
+        <p>💡 <strong>Tip:</strong> <span class="desktop-only">Drž MEZERNÍK jen dokud nejsi nad překážkou, pak pusť pro rychlejší dopad!</span><span class="mobile-only">Drž prst na obrazovce jen dokud nejsi nad překážkou!</span></p>
         <p>🏃‍♂️ Běžec zrychluje pouze když běží po zemi</p>
     </div>
     

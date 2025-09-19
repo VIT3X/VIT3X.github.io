@@ -2,6 +2,33 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const timeElement = document.getElementById('timeValue');
 
+// --- Responsive canvas setup ---
+function resizeCanvas() {
+    const container = document.getElementById('game-container');
+    const maxWidth = Math.min(window.innerWidth - 20, 1000);
+    const maxHeight = Math.min(window.innerHeight * 0.6, 500);
+    
+    // Zachováme poměr stran 2:1
+    let newWidth = maxWidth;
+    let newHeight = maxWidth * 0.5;
+    
+    if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newWidth = newHeight * 2;
+    }
+    
+    canvas.style.width = newWidth + 'px';
+    canvas.style.height = newHeight + 'px';
+    
+    // Nastavíme vnitřní rozlišení canvasu
+    canvas.width = 1000;
+    canvas.height = 500;
+}
+
+// Spustíme resize při načtení a změně velikosti okna
+window.addEventListener('load', resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
+
 // Debug - zkontrolujeme jestli se elementy načetly
 console.log('Canvas:', canvas);
 console.log('Context:', ctx);
@@ -58,9 +85,56 @@ let keys = {};
 let countdownIndex = 0;
 let countdownTimer = 0;
 
+// --- Mobilní detekce ---
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+let isJumping = false; // Pro touch ovládání
+
 // --- Vstup od hráče ---
 document.addEventListener('keydown', (e) => { keys[e.code] = true; });
 document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+// --- Touch ovládání pro mobily ---
+let touchStartY = 0;
+let isTouching = false;
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchStartY = e.touches[0].clientY;
+    isTouching = true;
+    isJumping = true;
+    
+    // Pokud je hra v initial stavu, spustíme ji
+    if (gameState === 'initial') {
+        startSequence();
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    isTouching = false;
+    isJumping = false;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+// --- Click ovládání pro desktop/tablet ---
+canvas.addEventListener('mousedown', (e) => {
+    isJumping = true;
+    if (gameState === 'initial') {
+        startSequence();
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    isJumping = false;
+});
+
+// Zabráníme scrollování na mobilu
+document.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+}, { passive: false });
 
 // --- Funkce pro kreslení běžce ---
 function drawRunner(x, y, frame, isJumping = false) {
@@ -286,15 +360,17 @@ function update() {
     
     worldOffsetX += player.speedX;
 
-    // --- Vylepšené skákání ---
-    if (keys['Space'] && player.onGround) {
+    // --- Vylepšené skákání (klávesnice nebo touch) ---
+    const jumpInput = keys['Space'] || isJumping;
+    
+    if (jumpInput && player.onGround) {
         player.velocityY = JUMP_STRENGTH;
         player.onGround = false;
         player.isJumping = true;
     }
     
-    // Gravitace - rychlejší pád když nepodržíme mezerník
-    const gravityToUse = keys['Space'] && player.velocityY < 0 ? GRAVITY : FAST_FALL_GRAVITY;
+    // Gravitace - rychlejší pád když nepodržíme vstup
+    const gravityToUse = jumpInput && player.velocityY < 0 ? GRAVITY : FAST_FALL_GRAVITY;
     player.velocityY += gravityToUse;
     player.y += player.velocityY;
 
@@ -485,22 +561,25 @@ function init() {
         ctx.strokeText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
         ctx.fillText('ATLETICKÝ BĚH S PŘEKÁŽKAMI', canvas.width / 2, canvas.height / 2 - 60);
         
+        // Různé instrukce pro mobil a desktop
         ctx.font = 'bold 30px Arial';
-        ctx.strokeText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
-        ctx.fillText('Stiskni MEZERNÍK pro start', canvas.width / 2, canvas.height / 2 + 20);
+        const startText = isMobile ? 'Dotkni se obrazovky pro start' : 'Stiskni MEZERNÍK pro start';
+        ctx.strokeText(startText, canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText(startText, canvas.width / 2, canvas.height / 2 + 20);
         
         ctx.font = '20px Arial';
         ctx.fillStyle = '#FFFF88';
-        ctx.fillText('Drž MEZERNÍK pro skok, pusť dříve pro rychlejší dopad!', canvas.width / 2, canvas.height / 2 + 60);
+        const jumpText = isMobile ? 'Drž prst na obrazovce pro skok!' : 'Drž MEZERNÍK pro skok, pusť dříve pro rychlejší dopad!';
+        ctx.fillText(jumpText, canvas.width / 2, canvas.height / 2 + 60);
 
-        // Čekáme na první stisk mezerníku pro spuštění odpočtu
+        // Čekáme na první vstup pro spuštění odpočtu
         document.addEventListener('keydown', function(e) {
             if (e.code === 'Space' && gameState === 'initial') {
                 startSequence();
             }
         }, { once: true });
         
-        console.log('Hra inicializována úspěšně!');
+        console.log('Hra inicializována úspěšně! Mobile:', isMobile);
     } catch (error) {
         console.error('Chyba při inicializaci:', error);
         // Fallback - zobrazíme alespoň nějakou zprávu
@@ -514,5 +593,6 @@ function init() {
 
 // Spustíme hru až po načtení DOM
 document.addEventListener('DOMContentLoaded', function() {
+    resizeCanvas();
     init();
 });
