@@ -316,6 +316,8 @@ function drawHurdle(x, y, width, height, isKnockedOver = false) {
         ctx.rotate(Math.PI/4); // Nakloněná o 45°
         ctx.translate(-width/2, -height/2);
         ctx.globalAlpha = 0.7;
+        x = 0;
+        y = 0;
     }
     
     // Barvy reálné překážky
@@ -324,40 +326,40 @@ function drawHurdle(x, y, width, height, isKnockedOver = false) {
     
     // Levý podstavec
     ctx.fillStyle = baseColor;
-    ctx.fillRect(0, height - 15, 12, 15); // Spodní část
-    ctx.fillRect(2, 0, 8, height - 25);   // Svislá tyč
+    ctx.fillRect(x, y + height - 15, 12, 15); // Spodní část
+    ctx.fillRect(x + 2, y, 8, height - 25);   // Svislá tyč
     
     // Pravý podstavec  
-    ctx.fillRect(width - 12, height - 15, 12, 15);
-    ctx.fillRect(width - 10, 0, 8, height - 25);
+    ctx.fillRect(x + width - 12, y + height - 15, 12, 15);
+    ctx.fillRect(x + width - 10, y, 8, height - 25);
     
     // Hlavní horní lišta (to přes co skáčeme)
     ctx.fillStyle = hurdleColor;
-    ctx.fillRect(0, 0, width, 10);
+    ctx.fillRect(x, y, width, 10);
     
     // Stínování pro 3D efekt
     ctx.fillStyle = '#CCCCCC';
-    ctx.fillRect(0, 8, width, 2);
+    ctx.fillRect(x, y + 8, width, 2);
     
     // Boční výztuhy (pro realismus)
     ctx.fillStyle = '#999999';
-    ctx.fillRect(8, 12, 4, height - 35);
-    ctx.fillRect(width - 12, 12, 4, height - 35);
+    ctx.fillRect(x + 8, y + 12, 4, height - 35);
+    ctx.fillRect(x + width - 12, y + 12, 4, height - 35);
     
     // Protiskluzové pásky
     ctx.fillStyle = '#FF4444';
-    ctx.fillRect(width/4, 2, width/2, 6);
+    ctx.fillRect(x + width/4, y + 2, width/2, 6);
     
     // Bílé pruhy pro visibility
     ctx.fillStyle = '#FFFFFF';
     for (let i = 0; i < 3; i++) {
-        ctx.fillRect(width/4 + i * (width/6), 3, 2, 4);
+        ctx.fillRect(x + width/4 + i * (width/6), y + 3, 2, 4);
     }
     
     // Stín na zemi
     if (!isKnockedOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(2, height + 2, width - 4, 6);
+        ctx.fillRect(x + 2, y + height + 2, width - 4, 6);
     }
     
     ctx.restore();
@@ -388,28 +390,10 @@ function drawFinishLine(x, y) {
 
 function generateObstacles() {
     obstacles = [];
-    const hurdleCount = 10; // Vždy přesně 10 překážek
-    const startPos = 500; // Pozice první překážky
-    const endPos = TRACK_DISTANCE - 600; // Pozice poslední překážky
-    const totalDistance = endPos - startPos;
+    const hurdleCount = 10; // Vždy 10 překážek
+    const spacing = 300; // Stejná vzdálenost mezi překážkami
+    let currentPos = 500; // Pozice první překážky
     
-    // Vygenerujeme náhodné vzdálenosti mezi překážkami
-    let distances = [];
-    let totalRandomDistance = 0;
-    
-    // Vygenerujeme náhodné hodnoty
-    for (let i = 0; i < hurdleCount - 1; i++) {
-        const randomDist = 200 + Math.random() * 200; // 200-400px
-        distances.push(randomDist);
-        totalRandomDistance += randomDist;
-    }
-    
-    // Škálujeme vzdálenosti aby se vešly na trať
-    const scale = totalDistance / totalRandomDistance;
-    distances = distances.map(d => d * scale);
-    
-    // Umístíme překážky
-    let currentPos = startPos;
     for (let i = 0; i < hurdleCount; i++) {
         obstacles.push({
             x: currentPos,
@@ -417,16 +401,12 @@ function generateObstacles() {
             width: 60,
             height: 60,
             isKnockedOver: false,
-            originalX: currentPos,
-            id: i // Pro debug
+            id: i
         });
-        
-        if (i < distances.length) {
-            currentPos += distances[i];
-        }
+        currentPos += spacing; // Přidáme stejnou vzdálenost
     }
     
-    console.log(`Generated ${obstacles.length} hurdles with distances:`, distances.map(d => Math.round(d)));
+    console.log(`Generated ${obstacles.length} hurdles with equal spacing of ${spacing}px`);
 }
 
 function startSequence() {
@@ -578,15 +558,11 @@ function draw() {
     // Kreslení světa
     drawWorld();
     
-    // Kreslení překážek
+    // Kreslení překážek - jednoduchá verze
     obstacles.forEach(obs => {
         const screenX = obs.x - worldOffsetX;
-        if (screenX > -100 && screenX < canvas.width + 100) { // Optimalizace - kreslí jen viditelné
-            // Kreslíme překážku na její pozici
-            ctx.save();
-            ctx.translate(screenX, obs.y);
-            drawHurdle(0, 0, obs.width, obs.height, obs.isKnockedOver);
-            ctx.restore();
+        if (screenX > -100 && screenX < canvas.width + 100) {
+            drawHurdle(screenX, obs.y, obs.width, obs.height, obs.isKnockedOver);
         }
     });
     
