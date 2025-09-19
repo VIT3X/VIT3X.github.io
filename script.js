@@ -39,11 +39,11 @@ if (!canvas || !ctx) {
 }
 
 // --- HERNÍ NASTAVENÍ ---
-const GRAVITY = 0.8;
-const JUMP_STRENGTH = -16;
-const FAST_FALL_GRAVITY = 2.0;
+const GRAVITY = 0.6; // Mírnější gravitace
+const JUMP_STRENGTH = -14; // Nižší síla skoku
+const FAST_FALL_GRAVITY = 1.2; // Mírnější rychlý pád
 const GROUND_Y = canvas.height - 80; // Pozice země
-const TRACK_DISTANCE = 6000; // Celková délka trati v pixelech
+const TRACK_DISTANCE = 4000; // Kratší trať pro lepší gameplay
 
 // --- Barvy pro atleta ---
 const RUNNER_COLORS = {
@@ -62,13 +62,13 @@ const player = {
     y: GROUND_Y - 80,
     velocityY: 0,
     speedX: 0,
-    maxSpeed: 10,
-    acceleration: 0.08,
+    maxSpeed: 5, // Zpomaleno z 10
+    acceleration: 0.03, // Zpomaleno z 0.08
     onGround: true,
     // Animace
-    frameCount: 8, // Počet snímků běžecké animace
+    frameCount: 6, // Méně snímků pro plynulejší animaci
     currentFrame: 0,
-    frameSpeed: 3, // Jak rychle se mění animace
+    frameSpeed: 8, // Pomalejší změna snímků
     frameCounter: 0,
     // Stav animace
     isJumping: false,
@@ -180,14 +180,24 @@ function drawRunner(x, y, frame, isJumping = false) {
     ctx.save();
     ctx.translate(x + player.width/2, y + player.height);
     
-    // Výpočet animace běhu
-    const runCycle = frame / player.frameCount;
-    const legAngle = Math.sin(runCycle * Math.PI * 2) * 0.6;
-    const armAngle = Math.sin(runCycle * Math.PI * 2 + Math.PI) * 0.4;
+    // Výpočet animace běhu - realističtější
+    const runCycle = (frame / player.frameCount) * Math.PI * 2;
+    const legAngle = Math.sin(runCycle) * 0.4; // Menší rozsah pohybu
+    const armAngle = Math.sin(runCycle + Math.PI) * 0.3;
+    const bodyBob = Math.sin(runCycle * 2) * 2; // Lehké kolébání těla
     
-    // Hlavní tělo
+    // Aplikujeme lehké kolébání
+    ctx.translate(0, bodyBob);
+    
+    // Hlavní tělo (atletický dres)
     ctx.fillStyle = RUNNER_COLORS.shirt;
     ctx.fillRect(-15, -65, 30, 35);
+    
+    // Číslo na dresu
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('42', 0, -45);
     
     // Hlava
     ctx.fillStyle = RUNNER_COLORS.skin;
@@ -195,46 +205,50 @@ function drawRunner(x, y, frame, isJumping = false) {
     ctx.arc(0, -75, 12, 0, Math.PI * 2);
     ctx.fill();
     
-    // Vlasy
+    // Vlasy (běžecká čelenka)
     ctx.fillStyle = RUNNER_COLORS.hair;
     ctx.beginPath();
     ctx.arc(0, -80, 10, 0, Math.PI);
     ctx.fill();
     
     if (isJumping) {
-        // Skákající pozice - nohy pokrčené
-        // Levá noha
+        // Skákající pozice - realističtější překážkový styl
+        // Levá noha (vedoucí)
         ctx.save();
-        ctx.rotate(-0.3);
+        ctx.rotate(-0.4);
         ctx.fillStyle = RUNNER_COLORS.skin;
-        ctx.fillRect(-8, -30, 8, 20);
+        ctx.fillRect(-8, -35, 8, 25);
         ctx.fillStyle = RUNNER_COLORS.shorts;
-        ctx.fillRect(-8, -45, 8, 15);
+        ctx.fillRect(-8, -50, 8, 15);
+        ctx.fillStyle = RUNNER_COLORS.shoes;
+        ctx.fillRect(-10, -12, 12, 8);
         ctx.restore();
         
-        // Pravá noha
+        // Pravá noha (následující)
         ctx.save();
-        ctx.rotate(0.2);
+        ctx.rotate(0.1);
         ctx.fillStyle = RUNNER_COLORS.skin;
         ctx.fillRect(0, -25, 8, 20);
         ctx.fillStyle = RUNNER_COLORS.shorts;
         ctx.fillRect(0, -40, 8, 15);
+        ctx.fillStyle = RUNNER_COLORS.shoes;
+        ctx.fillRect(-2, -8, 12, 8);
         ctx.restore();
         
-        // Ruce nahoru
+        // Ruce v překážkovém stylu
         ctx.save();
-        ctx.rotate(-0.5);
+        ctx.rotate(-0.6);
         ctx.fillStyle = RUNNER_COLORS.skin;
-        ctx.fillRect(-25, -60, 20, 8);
+        ctx.fillRect(-25, -55, 22, 8);
         ctx.restore();
         
         ctx.save();
-        ctx.rotate(0.5);
+        ctx.rotate(0.2);
         ctx.fillStyle = RUNNER_COLORS.skin;
-        ctx.fillRect(5, -60, 20, 8);
+        ctx.fillRect(3, -60, 22, 8);
         ctx.restore();
     } else {
-        // Běžecká animace
+        // Běžecká animace - atletický styl
         // Levá noha
         ctx.save();
         ctx.rotate(legAngle);
@@ -243,7 +257,11 @@ function drawRunner(x, y, frame, isJumping = false) {
         ctx.fillStyle = RUNNER_COLORS.shorts;
         ctx.fillRect(-8, -45, 8, 15);
         ctx.fillStyle = RUNNER_COLORS.shoes;
-        ctx.fillRect(-10, -8, 12, 8);
+        ctx.fillRect(-10, -8, 14, 8);
+        // Atletické tretry - hřeby
+        ctx.fillStyle = '#FFFF00';
+        ctx.fillRect(-8, -6, 2, 2);
+        ctx.fillRect(-5, -6, 2, 2);
         ctx.restore();
         
         // Pravá noha
@@ -254,21 +272,33 @@ function drawRunner(x, y, frame, isJumping = false) {
         ctx.fillStyle = RUNNER_COLORS.shorts;
         ctx.fillRect(0, -45, 8, 15);
         ctx.fillStyle = RUNNER_COLORS.shoes;
-        ctx.fillRect(-2, -8, 12, 8);
+        ctx.fillRect(-2, -8, 14, 8);
+        // Atletické tretry - hřeby
+        ctx.fillStyle = '#FFFF00';
+        ctx.fillRect(2, -6, 2, 2);
+        ctx.fillRect(5, -6, 2, 2);
         ctx.restore();
         
-        // Levá ruka
+        // Levá ruka - atletická technika
         ctx.save();
-        ctx.rotate(armAngle);
+        ctx.rotate(armAngle * 0.8);
         ctx.fillStyle = RUNNER_COLORS.skin;
         ctx.fillRect(-25, -55, 20, 8);
+        // Ruka v pěst
+        ctx.beginPath();
+        ctx.arc(-30, -51, 4, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
         
         // Pravá ruka
         ctx.save();
-        ctx.rotate(-armAngle);
+        ctx.rotate(-armAngle * 0.8);
         ctx.fillStyle = RUNNER_COLORS.skin;
         ctx.fillRect(5, -55, 20, 8);
+        // Ruka v pěst
+        ctx.beginPath();
+        ctx.arc(30, -51, 4, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
     
@@ -276,28 +306,60 @@ function drawRunner(x, y, frame, isJumping = false) {
 }
 
 // --- Funkce pro kreslení překážky ---
-function drawHurdle(x, y, width, height) {
-    ctx.fillStyle = '#FFD700'; // Zlatá barva
+function drawHurdle(x, y, width, height, isKnockedOver = false) {
+    ctx.save();
     
-    // Levá noha překážky
-    ctx.fillRect(x, y + height - 20, 8, 20);
-    ctx.fillRect(x, y, 8, height - 40);
-    
-    // Pravá noha překážky
-    ctx.fillRect(x + width - 8, y + height - 20, 8, 20);
-    ctx.fillRect(x + width - 8, y, 8, height - 40);
-    
-    // Horní lišta
-    ctx.fillRect(x, y, width, 8);
-    
-    // Příčky
-    for (let i = 1; i <= 3; i++) {
-        ctx.fillRect(x + 5, y + (height / 4) * i, width - 10, 4);
+    if (isKnockedOver) {
+        // Spadlá překážka
+        ctx.translate(x + width/2, y + height/2);
+        ctx.rotate(Math.PI/4); // Nakloněná o 45°
+        ctx.translate(-width/2, -height/2);
+        ctx.globalAlpha = 0.7;
     }
     
-    // Stín
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.fillRect(x + 5, y + height + 2, width, 8);
+    // Barvy reálné překážky
+    const hurdleColor = '#E6E6E6'; // Stříbrná/bílá
+    const baseColor = '#333333';   // Černé podstavce
+    
+    // Levý podstavec
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, height - 15, 12, 15); // Spodní část
+    ctx.fillRect(2, 0, 8, height - 25);   // Svislá tyč
+    
+    // Pravý podstavec  
+    ctx.fillRect(width - 12, height - 15, 12, 15);
+    ctx.fillRect(width - 10, 0, 8, height - 25);
+    
+    // Hlavní horní lišta (to přes co skáčeme)
+    ctx.fillStyle = hurdleColor;
+    ctx.fillRect(0, 0, width, 10);
+    
+    // Stínování pro 3D efekt
+    ctx.fillStyle = '#CCCCCC';
+    ctx.fillRect(0, 8, width, 2);
+    
+    // Boční výztuhy (pro realismus)
+    ctx.fillStyle = '#999999';
+    ctx.fillRect(8, 12, 4, height - 35);
+    ctx.fillRect(width - 12, 12, 4, height - 35);
+    
+    // Protiskluzové pásky
+    ctx.fillStyle = '#FF4444';
+    ctx.fillRect(width/4, 2, width/2, 6);
+    
+    // Bílé pruhy pro visibility
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 3; i++) {
+        ctx.fillRect(width/4 + i * (width/6), 3, 2, 4);
+    }
+    
+    // Stín na zemi
+    if (!isKnockedOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(2, height + 2, width - 4, 6);
+    }
+    
+    ctx.restore();
 }
 
 // --- Funkce pro kreslení cílové čáry ---
@@ -325,18 +387,20 @@ function drawFinishLine(x, y) {
 
 function generateObstacles() {
     obstacles = [];
-    let currentPos = 800; // První překážka dále
+    let currentPos = 600; // První překážka blíže pro lepší gameplay
     let hurdleCount = 0;
-    const maxHurdles = 10;
+    const maxHurdles = 8; // Méně překážek
     
-    while(currentPos < TRACK_DISTANCE - 500 && hurdleCount < maxHurdles) {
+    while(currentPos < TRACK_DISTANCE - 400 && hurdleCount < maxHurdles) {
         obstacles.push({
             x: currentPos,
             y: GROUND_Y - 60, // Výška překážky
             width: 60,
-            height: 60
+            height: 60,
+            isKnockedOver: false, // Nový stav pro spadlé překážky
+            originalX: currentPos // Pro animaci pádu
         });
-        currentPos += 350 + Math.random() * 200; // Rozestup překážek
+        currentPos += 280 + Math.random() * 150; // Menší a konzistentnější rozestupy
         hurdleCount++;
     }
 }
@@ -432,19 +496,32 @@ function update() {
 
     // --- Kolize s překážkami ---
     obstacles.forEach(obs => {
-        const playerLeft = player.x + 15; // Přesnější hitbox
-        const playerRight = player.x + player.width - 15;
+        const playerLeft = player.x + 10; // Přesnější hitbox
+        const playerRight = player.x + player.width - 10;
         const obsLeft = obs.x - worldOffsetX;
         const obsRight = obs.x + obs.width - worldOffsetX;
 
         if (playerRight > obsLeft && playerLeft < obsRight && 
-            player.y + player.height > obs.y + 10) { // Trochu tolerance
-            player.speedX *= 0.7; // Větší zpomalení při kolizi
-            // Malý odraz zpět
+            player.y + player.height > obs.y + 15 && !obs.isKnockedOver) { // Trochu tolerance
+            
+            console.log('Collision detected!');
+            
+            // Shodíme překážku
+            obs.isKnockedOver = true;
+            
+            // Výrazné zpomalení běžce
+            player.speedX *= 0.3; // Velké zpomalení
+            
+            // Kratký "zakopnutí" efekt
             if (player.onGround) {
-                player.velocityY = -8;
+                player.velocityY = -6; // Menší skok nahoru
                 player.onGround = false;
             }
+            
+            // Efekt otřesu obrazovky (simulace)
+            ctx.save();
+            ctx.translate(Math.random() * 4 - 2, Math.random() * 4 - 2);
+            setTimeout(() => ctx.restore(), 100);
         }
     });
     
@@ -471,7 +548,7 @@ function draw() {
     obstacles.forEach(obs => {
         const screenX = obs.x - worldOffsetX;
         if (screenX > -100 && screenX < canvas.width + 100) { // Optimalizace - kreslí jen viditelné
-            drawHurdle(screenX, obs.y, obs.width, obs.height);
+            drawHurdle(screenX, obs.y, obs.width, obs.height, obs.isKnockedOver);
         }
     });
     
@@ -504,14 +581,20 @@ function draw() {
         
         // Hodnocení času
         let rating = '';
-        if (finalTime < 20) rating = '🏆 MISTROVSKÝ ČAS!';
-        else if (finalTime < 25) rating = '🥇 VÝBORNÝ ČAS!';
-        else if (finalTime < 30) rating = '🥈 DOBRÝ ČAS!';
+        if (finalTime < 15) rating = '🏆 MISTROVSKÝ ČAS!';
+        else if (finalTime < 20) rating = '🥇 VÝBORNÝ ČAS!';
+        else if (finalTime < 25) rating = '🥈 DOBRÝ ČAS!';
         else rating = '🥉 ZKUS TO ZNOVU!';
         
         ctx.font = '30px Arial';
         ctx.fillStyle = '#FFD700';
         ctx.fillText(rating, canvas.width / 2, canvas.height / 2 + 80);
+        
+        // Zobrazíme restart tlačítko
+        const restartButton = document.getElementById('restartButton');
+        if (restartButton) {
+            restartButton.classList.add('show');
+        }
     }
 }
 
@@ -667,5 +750,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Přidáme event listener pro restart tlačítko
+    const restartButton = document.getElementById('restartButton');
+    if (restartButton) {
+        restartButton.addEventListener('click', function() {
+            console.log('Restart button clicked!');
+            restartGame();
+        });
+        
+        restartButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log('Restart button touched!');
+            restartGame();
+        });
+    }
+    
     init();
 });
+
+function restartGame() {
+    // Reset všech hodnot
+    gameState = 'initial';
+    worldOffsetX = 0;
+    player.speedX = 0;
+    player.velocityY = 0;
+    player.x = 100;
+    player.y = GROUND_Y - 80;
+    player.onGround = true;
+    player.isJumping = false;
+    player.currentFrame = 0;
+    player.frameCounter = 0;
+    startTime = 0;
+    finalTime = 0;
+    countdownIndex = 0;
+    countdownTimer = 0;
+    isJumping = false;
+    
+    // Skryjeme restart tlačítko
+    const restartButton = document.getElementById('restartButton');
+    if (restartButton) {
+        restartButton.classList.remove('show');
+    }
+    
+    // Znovu vygenerujeme překážky
+    generateObstacles();
+    
+    // Restartujeme hru
+    init();
+}

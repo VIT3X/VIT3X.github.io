@@ -93,6 +93,39 @@ canvas {
     display: block;
 }
 
+.restart-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(45deg, #4CAF50, #66BB6A);
+    color: white;
+    border: 3px solid #FFD700;
+    border-radius: 15px;
+    padding: 12px 25px;
+    font-size: clamp(1rem, 4vw, 1.5rem);
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    z-index: 20;
+    transition: all 0.3s ease;
+    display: none; /* Skryté defaultně */
+}
+
+.restart-btn:hover {
+    background: linear-gradient(45deg, #66BB6A, #81C784);
+    transform: translateX(-50%) scale(1.05);
+}
+
+.restart-btn:active {
+    transform: translateX(-50%) scale(0.95);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.restart-btn.show {
+    display: block;
+}
+
 .instructions {
     margin-top: 20px;
     background: rgba(255, 255, 255, 0.95);
