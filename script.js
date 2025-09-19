@@ -39,9 +39,10 @@ if (!canvas || !ctx) {
 }
 
 // --- HERNÍ NASTAVENÍ ---
-const GRAVITY = 0.6; // Mírnější gravitace
-const JUMP_STRENGTH = -14; // Nižší síla skoku
-const FAST_FALL_GRAVITY = 1.2; // Mírnější rychlý pád
+const GRAVITY = 0.4; // Mírnější gravitace pro lepší kontrolu
+const JUMP_FORCE = -0.8; // Síla držení - kontinuální tlak nahoru
+const FALL_GRAVITY = 1.0; // Rychlejší padání když nepodržíme
+const MAX_JUMP_HEIGHT = GROUND_Y - 180; // Maximální výška skoku
 const GROUND_Y = canvas.height - 80; // Pozice země
 const TRACK_DISTANCE = 4000; // Kratší trať pro lepší gameplay
 
@@ -387,22 +388,45 @@ function drawFinishLine(x, y) {
 
 function generateObstacles() {
     obstacles = [];
-    let currentPos = 600; // První překážka blíže pro lepší gameplay
-    let hurdleCount = 0;
-    const maxHurdles = 8; // Méně překážek
+    const hurdleCount = 10; // Vždy přesně 10 překážek
+    const startPos = 500; // Pozice první překážky
+    const endPos = TRACK_DISTANCE - 600; // Pozice poslední překážky
+    const totalDistance = endPos - startPos;
     
-    while(currentPos < TRACK_DISTANCE - 400 && hurdleCount < maxHurdles) {
+    // Vygenerujeme náhodné vzdálenosti mezi překážkami
+    let distances = [];
+    let totalRandomDistance = 0;
+    
+    // Vygenerujeme náhodné hodnoty
+    for (let i = 0; i < hurdleCount - 1; i++) {
+        const randomDist = 200 + Math.random() * 200; // 200-400px
+        distances.push(randomDist);
+        totalRandomDistance += randomDist;
+    }
+    
+    // Škálujeme vzdálenosti aby se vešly na trať
+    const scale = totalDistance / totalRandomDistance;
+    distances = distances.map(d => d * scale);
+    
+    // Umístíme překážky
+    let currentPos = startPos;
+    for (let i = 0; i < hurdleCount; i++) {
         obstacles.push({
             x: currentPos,
-            y: GROUND_Y - 60, // Výška překážky
+            y: GROUND_Y - 60,
             width: 60,
             height: 60,
-            isKnockedOver: false, // Nový stav pro spadlé překážky
-            originalX: currentPos // Pro animaci pádu
+            isKnockedOver: false,
+            originalX: currentPos,
+            id: i // Pro debug
         });
-        currentPos += 280 + Math.random() * 150; // Menší a konzistentnější rozestupy
-        hurdleCount++;
+        
+        if (i < distances.length) {
+            currentPos += distances[i];
+        }
     }
+    
+    console.log(`Generated ${obstacles.length} hurdles with distances:`, distances.map(d => Math.round(d)));
 }
 
 function startSequence() {
@@ -463,22 +487,37 @@ function update() {
     
     worldOffsetX += player.speedX;
 
-    // --- Vylepšené skákání (klávesnice nebo touch) ---
+    // --- Vylepšená skoková mechanika ---
     const jumpInput = keys['Space'] || isJumping;
     
-    if (jumpInput && player.onGround) {
-        player.velocityY = JUMP_STRENGTH;
-        player.onGround = false;
-        player.isJumping = true;
+    if (jumpInput) {
+        // Držíme vstup - létáme nahoru (ale jen do limitu)
+        if (player.y > MAX_JUMP_HEIGHT) {
+            player.velocityY += JUMP_FORCE;
+            if (!player.onGround) {
+                player.isJumping = true;
+            }
+        }
+        
+        // První skok ze země
+        if (player.onGround) {
+            player.velocityY = JUMP_FORCE * 8; // Počáteční impuls
+            player.onGround = false;
+            player.isJumping = true;
+        }
     }
     
-    // Gravitace - rychlejší pád když nepodržíme vstup
-    const gravityToUse = jumpInput && player.velocityY < 0 ? GRAVITY : FAST_FALL_GRAVITY;
+    // Aplikace gravitace
+    const gravityToUse = jumpInput && player.y > MAX_JUMP_HEIGHT ? GRAVITY : FALL_GRAVITY;
     player.velocityY += gravityToUse;
+    
+    // Omezení maximální rychlosti pádu
+    if (player.velocityY > 12) player.velocityY = 12;
+    
     player.y += player.velocityY;
 
     // Detekce země
-    if (player.y + player.height > GROUND_Y) {
+    if (player.y + player.height >= GROUND_Y) {
         player.y = GROUND_Y - player.height;
         player.velocityY = 0;
         player.onGround = true;
@@ -504,7 +543,7 @@ function update() {
         if (playerRight > obsLeft && playerLeft < obsRight && 
             player.y + player.height > obs.y + 15 && !obs.isKnockedOver) { // Trochu tolerance
             
-            console.log('Collision detected!');
+            console.log('Collision detected with hurdle', obs.id);
             
             // Shodíme překážku
             obs.isKnockedOver = true;
@@ -517,11 +556,6 @@ function update() {
                 player.velocityY = -6; // Menší skok nahoru
                 player.onGround = false;
             }
-            
-            // Efekt otřesu obrazovky (simulace)
-            ctx.save();
-            ctx.translate(Math.random() * 4 - 2, Math.random() * 4 - 2);
-            setTimeout(() => ctx.restore(), 100);
         }
     });
     
@@ -548,7 +582,11 @@ function draw() {
     obstacles.forEach(obs => {
         const screenX = obs.x - worldOffsetX;
         if (screenX > -100 && screenX < canvas.width + 100) { // Optimalizace - kreslí jen viditelné
-            drawHurdle(screenX, obs.y, obs.width, obs.height, obs.isKnockedOver);
+            // Kreslíme překážku na její pozici
+            ctx.save();
+            ctx.translate(screenX, obs.y);
+            drawHurdle(0, 0, obs.width, obs.height, obs.isKnockedOver);
+            ctx.restore();
         }
     });
     
@@ -626,6 +664,10 @@ function drawWorld() {
             ctx.fillRect(0, laneY, canvas.width, 2);
         }
     }
+    
+    // Maximální výška skoku (neviditelná čára)
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+    ctx.fillRect(0, MAX_JUMP_HEIGHT, canvas.width, 2);
     
     // Startovní bloky na začátku
     if (worldOffsetX < 200) {
